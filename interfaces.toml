@@ -1,0 +1,52 @@
+[[interface]]
+name = "wg0"
+address = ""
+port = 0
+enabled = false
+ifup = ""
+ifdown = ""
+publickey = ""
+privatekey = ""
+
+[[interface.peer]]
+name = "wg0_peer1"
+publickey = ""
+privatekey = ""
+address = ""
+enabled = false
+allowedip = []
+
+[[interface.peer]]
+name = "wg0_peer2"
+publickey = ""
+privatekey = ""
+address = ""
+enabled = false
+allowedip = []
+
+[[interface]]
+name = "wg1"
+address = ""
+port = 0
+enabled = false
+ifup = ""
+ifdown = ""
+publickey = ""
+privatekey = ""
+
+[[interface.peer]]
+name = "wg1_peer1"
+publickey = ""
+privatekey = ""
+address = ""
+enabled = false
+allowedip = []
+
+[[interface.peer]]
+name = "wg1_peer2"
+publickey = ""
+privatekey = ""
+address = ""
+enabled = false
+allowedip = []
+
