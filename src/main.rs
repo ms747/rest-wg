@@ -26,9 +26,12 @@ async fn main() {
                 .delete(interface::delete_interface),
         )
         .route(
+            "/interface/:name/peer",
+            get(peer::get_peers).post(peer::create_peer),
+        )
+        .route(
             "/interface/:name/peer/:id",
             get(peer::get_peer)
-                .post(peer::create_peer)
                 .patch(peer::update_peer)
                 .delete(peer::delete_peer),
         )

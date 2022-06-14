@@ -5,7 +5,6 @@ use axum::response::IntoResponse;
 use axum::Json;
 use axum::{extract::Path, Extension};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct InterfaceConf {
@@ -80,7 +79,7 @@ pub async fn update_interface(
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let mut state = state.write().await;
-
+    dbg!(&updated_json);
     if state.interfaces.len() > id {
         // name
         if let Some(name) = updated_json.name {
