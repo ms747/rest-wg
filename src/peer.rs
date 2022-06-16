@@ -1,20 +1,37 @@
-use crate::state::SharedState;
+use crate::{state::SharedState, wghelper};
 use axum::{extract::Path, http::StatusCode, Extension, Json};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PeerConf {
-    name: String,
-    publickey: String,
-    privatekey: String,
-    address: String,
-    enabled: bool,
-    allowedip: Vec<String>,
+    pub name: String,
+    pub publickey: String,
+    pub privatekey: String,
+    pub address: String,
+    pub port: u16,
+    pub enabled: bool,
+    pub allowedip: Vec<String>,
+}
+
+impl Default for PeerConf {
+    fn default() -> Self {
+        Self {
+            name: "".into(),
+            publickey: "".into(),
+            privatekey: "".into(),
+            address: "".into(),
+            port: 0,
+            enabled: true,
+            allowedip: vec![],
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
 pub struct CreatePeerConf {
     name: String,
+    address: String,
+    allowedip: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -55,13 +72,19 @@ pub async fn create_peer(
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let mut state = state.write().await;
-    let new_peer = PeerConf {
-        name: create_peer.name,
-        ..PeerConf::default()
-    };
-
     if state.interfaces.len() > iface_id {
+        let (privatekey, publickey) = wghelper::get_keys().await;
+        let new_peer = PeerConf {
+            address: create_peer.address,
+            port: 51820,
+            name: create_peer.name,
+            privatekey,
+            publickey,
+            allowedip: create_peer.allowedip,
+            ..PeerConf::default()
+        };
         state.interfaces[iface_id].peer.push(new_peer);
+        wghelper::write_config(&state).await;
         return Ok(StatusCode::OK);
     }
 
@@ -99,6 +122,8 @@ pub async fn update_peer(
         if let Some(allowedip) = updated_peer.allowedip {
             state.interfaces[iface_id].peer[peer_id].allowedip = allowedip;
         }
+
+        wghelper::write_config(&state).await;
         return Ok(StatusCode::OK);
     }
     Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -111,6 +136,7 @@ pub async fn delete_peer(
     let mut state = state.write().await;
     if state.interfaces.len() > iface_id && state.interfaces[iface_id].peer.len() > peer_id {
         state.interfaces[iface_id].peer.remove(peer_id);
+        wghelper::write_config(&state).await;
         return Ok(StatusCode::OK);
     }
     Err(StatusCode::INTERNAL_SERVER_ERROR)
