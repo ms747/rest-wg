@@ -10,6 +10,7 @@ pub struct CreatePeer {
     name: String,
 }
 
+/*
 #[derive(Debug, Deserialize)]
 pub struct UpdatePeerConf {
     name: Option<String>,
@@ -19,6 +20,7 @@ pub struct UpdatePeerConf {
     enabled: Option<bool>,
     allowedip: Option<Vec<String>>,
 }
+*/
 
 pub async fn get_peers(
     Path(server_id): Path<usize>,
@@ -50,7 +52,7 @@ pub async fn create_peer(
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let mut state = state.write().await;
-    if let Some(_) = state.servers.get(server_id) {
+    if state.servers.get(server_id).is_some() {
         state.create_peer(&create_peer.name, server_id).await;
         Wg::dump_state(&state).await;
         return Ok(StatusCode::OK);
@@ -59,13 +61,13 @@ pub async fn create_peer(
     Ok(StatusCode::INTERNAL_SERVER_ERROR)
 }
 
+/*
 pub async fn update_peer(
     Json(updated_peer): Json<UpdatePeerConf>,
     Extension(state): Extension<SharedState>,
     Path((server_id, peer_id)): Path<(usize, usize)>,
 ) -> Result<StatusCode, StatusCode> {
     todo!()
-    /*
     let mut state = state.write().await;
     if state.interfaces.len() > iface_id && state.interfaces[iface_id].peer.len() > peer_id {
         // name
@@ -97,8 +99,8 @@ pub async fn update_peer(
         return Ok(StatusCode::OK);
     }
     Err(StatusCode::INTERNAL_SERVER_ERROR)
-    */
 }
+*/
 
 pub async fn delete_peer(
     Path((server_id, peer_id)): Path<(usize, usize)>,
@@ -106,7 +108,7 @@ pub async fn delete_peer(
 ) -> Result<StatusCode, StatusCode> {
     let mut state = state.write().await;
     if let Some(server) = state.servers.get_mut(server_id) {
-        if let Some(_) = server.peers.get(peer_id) {
+        if server.peers.get(peer_id).is_some() {
             server.peers.remove(peer_id);
             Wg::dump_state(&state).await;
             return Ok(StatusCode::OK);

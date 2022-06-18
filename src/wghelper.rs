@@ -42,7 +42,7 @@ pub struct Wg {
 }
 
 impl Wg {
-    pub async fn new(&mut self, name: &str, cidr: &str, port: u16) {
+    pub async fn create(&mut self, name: &str, cidr: &str, port: u16) {
         let (prikey, pubkey) = Self::get_keys().await;
 
         let subnet = cidr.chars().filter(|ch| *ch == 'x').count();
@@ -89,7 +89,7 @@ impl Wg {
     pub fn read_state() -> Wg {
         let config = std::fs::read_to_string(PATH).unwrap();
         let state: Wg = toml::from_str(&config).unwrap();
-        return state;
+        state
     }
 
     pub async fn dump_state(state: &Wg) {

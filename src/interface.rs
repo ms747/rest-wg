@@ -6,6 +6,7 @@ use axum::Json;
 use axum::{extract::Path, Extension};
 use serde::Deserialize;
 
+/*
 #[derive(Debug, Deserialize)]
 pub struct UpdateInterfaceConf {
     name: Option<String>,
@@ -17,6 +18,7 @@ pub struct UpdateInterfaceConf {
     publickey: Option<String>,
     privatekey: Option<String>,
 }
+*/
 
 #[derive(Debug, Deserialize)]
 pub struct CreateServer {
@@ -30,7 +32,7 @@ pub async fn start_server(
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let state = state.read().await;
-    if let Some(_) = state.servers.get(server_id) {
+    if state.servers.get(server_id).is_some() {
         state.start(server_id).await;
         return Ok(StatusCode::OK);
     }
@@ -42,7 +44,7 @@ pub async fn stop_server(
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let state = state.read().await;
-    if let Some(_) = state.servers.get(server_id) {
+    if state.servers.get(server_id).is_some() {
         state.stop(server_id).await;
         return Ok(StatusCode::OK);
     }
@@ -54,7 +56,7 @@ pub async fn refresh_server(
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let state = state.read().await;
-    if let Some(_) = state.servers.get(server_id) {
+    if state.servers.get(server_id).is_some() {
         state.hot_reload(server_id).await;
         return Ok(StatusCode::OK);
     }
@@ -77,7 +79,7 @@ pub async fn create_server(
 ) -> Result<StatusCode, StatusCode> {
     let mut state = state.write().await;
     state
-        .new(&create_server.name, &create_server.cidr, create_server.port)
+        .create(&create_server.name, &create_server.cidr, create_server.port)
         .await;
 
     Wg::dump_state(&state).await;
@@ -96,12 +98,12 @@ pub async fn get_server(
     }
 }
 
+/*
 pub async fn update_server(
     Json(updated_json): Json<UpdateInterfaceConf>,
     Path(server_id): Path<usize>,
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
-    /*
     let mut state = state.write().await;
     dbg!(&updated_json);
     if state.interfaces.len() > id {
@@ -142,16 +144,16 @@ pub async fn update_server(
     } else {
         Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
-    */
     todo!()
 }
+*/
 
 pub async fn delete_server(
     Path(server_id): Path<usize>,
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let mut state = state.write().await;
-    if let Some(_) = state.servers.get(server_id) {
+    if state.servers.get(server_id).is_some() {
         state.servers.remove(server_id);
         Wg::dump_state(&state).await;
         return Ok(StatusCode::OK);

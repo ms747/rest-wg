@@ -29,7 +29,7 @@ async fn main() {
         .route(
             "/interface/:iface",
             get(interface::get_server)
-                .patch(interface::update_server)
+                //.patch(interface::update_server)
                 .delete(interface::delete_server),
         )
         .route("/interface/:iface/start", get(interface::start_server))
@@ -42,7 +42,7 @@ async fn main() {
         .route(
             "/interface/:iface/peer/:peer",
             get(peer::get_peer)
-                .patch(peer::update_peer)
+                //.patch(peer::update_peer)
                 .delete(peer::delete_peer),
         )
         .route(
