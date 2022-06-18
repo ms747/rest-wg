@@ -1,82 +1,25 @@
-[[interface]]
-name = "ms"
-address = "10.10.10.1/32"
-port = 51822
-enabled = true
-ifup = "iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o enp0s3 -j MASQUERADE"
-ifdown = "iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o enp0s3 -j MASQUERADE"
-publickey = "VBiZfuRIUsJRVZTStRWkjlglwkNLMGN76IByyaZTx1A="
-privatekey = "eNtJavzTBa4dsRMVAWaR5DxZ/t8B65lUm7z9hePr7Hk="
-
-[[interface.peer]]
-name = "mspeer"
-publickey = "Ca40EFZ1retVAJImjVyV8AFV4AkGLtxYypgx83tEADo="
-privatekey = "sCMkhCb5RIW9diOJtKzYgBZZhBUtMnG1fcVXFWBhYlg="
-address = "10.10.10.2/32"
-port = 51820
-enabled = true
-allowedip = ["10.10.10.0/24"]
-
-[[interface.peer]]
-name = "peer2"
-publickey = "cuNHocEDqNEalKWnZmXQnnqLzLxVRYdgaMCSdQNmJmw="
-privatekey = "EEEJVJiJPhOb6xRRL+/wr3agXm7/Ckx2VEAITlgP9Uc="
-address = "10.10.10.4/32"
-port = 51820
-enabled = true
-allowedip = ["10.10.10.0/24"]
-
-[[interface.peer]]
-name = "peer3"
-publickey = "oBQ2Oj+yx9JgSVJgreV5AhAiqLbf38aPuPStObS6EDY="
-privatekey = "mCSU766NVlKvoOZv+IhH2drU5YoFSMwmp+rMLoDxH2E="
-address = "10.10.10.5/32"
-port = 51820
-enabled = true
-allowedip = ["10.10.10.0/24"]
-
-[[interface.peer]]
-name = "peer4"
-publickey = "ND4r3ca+pz9ScEvJSvIbpev6XuEck1F5d/2gpW+z8SU="
-privatekey = "eDd+15nINoprTNk5N2+A/5amHH8JrYL3Nq33shuLF3A="
-address = "10.10.10.6/32"
-port = 51820
-enabled = true
-allowedip = ["10.10.10.0/24"]
-
-[[interface.peer]]
-name = "peer5"
-publickey = "UDTNN9ejfb07d2XvaSkxPcbeY4ckNAQ0NWfZ8oASayo="
-privatekey = "CCaXSKR3A21vOLMs1XD8hRqPS/TQvn7X2juUw+R9GnM="
-address = "10.10.10.54/32"
-port = 51820
-enabled = true
-allowedip = ["10.10.10.0/24"]
-
-[[interface]]
-name = "wg1"
-address = "10.20.30.1/32"
+[[servers]]
+path = "/tmp/wg0.conf"
+name = "wg0"
+address = "10.20.30.x"
+subnet = 24
 port = 51823
-enabled = true
-ifup = "iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o enp0s3 -j MASQUERADE"
-ifdown = "iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o enp0s3 -j MASQUERADE"
-publickey = "HeKDU2TI6LjL9CpkUywcz/vK3WD+zDKNeyEAvty6lnA="
-privatekey = "UCBja7qNuKGdo0NwpprMCzOXr8+SJSACDWNcP8bWBW0="
+prikey = "OBkqW24qErlzApKZinmPdzHP0qUleF4YnjH1RdoSOW4="
+pubkey = "EXhJU4LlShp9l0hOcuMFVxFOx/XztW36LNayjcR+xSM="
+peers = []
 
-[[interface.peer]]
+[[servers]]
+path = "/tmp/wg1.conf"
+name = "wg1"
+address = "10.11.12.x"
+subnet = 24
+port = 51824
+prikey = "0K+kGmivTvzr1sT/hhqLdFdSVrODteaoo+dKUTrLmUM="
+pubkey = "ly4PCBsf7CdAkZaAnT+PkksMwlScZvNrCRRuPj976FE="
+
+[[servers.peers]]
 name = "peer1"
-publickey = "+egtt8ViGRtSOEXuFXvoK9F5a2iz3PjH/ftMTD3gog4="
-privatekey = "oEeueHj5zXshs//HUpj7i5ZY9DZLu/jYIyg9RmLAzn0="
-address = "10.20.30.2/32"
-port = 51820
+address = "10.11.12.2/24"
+prikey = "qHSMnsD6lxMZy4HVV9ronhSbmVd11AQzOBD4/UXm+E4="
+pubkey = "lqLptyeQfXwK+93tU9okHkN0sarzgEp78pFzRpUlsjo="
 enabled = true
-allowedip = ["10.20.30.0/24"]
-
-[[interface.peer]]
-name = "peer2"
-publickey = "G0e5fjAwmraL0qyn2fbrg6N2TL3lNQixDLOqc+DqvHo="
-privatekey = "YM/kVlpO/VwP/BApyoLCJZKJv5rG0r81/xUmUG/Dp2g="
-address = "10.20.30.3/32"
-port = 51820
-enabled = true
-allowedip = ["10.20.30.0/24"]

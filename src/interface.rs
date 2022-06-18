@@ -1,40 +1,10 @@
-use crate::peer::PeerConf;
 use crate::state::SharedState;
-use crate::wghelper;
+use crate::wghelper::{Server, Wg};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use axum::{extract::Path, Extension};
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InterfaceConf {
-    pub name: String,
-    pub address: String,
-    pub port: u16,
-    pub enabled: bool,
-    pub ifup: String,
-    pub ifdown: String,
-    pub publickey: String,
-    pub privatekey: String,
-    pub peer: Vec<PeerConf>,
-}
-
-impl Default for InterfaceConf {
-    fn default() -> Self {
-        Self {
-            name: "".into(),
-            address: "".into(),
-            port: 51820,
-            enabled: true,
-            ifup: "iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o enp0s3 -j MASQUERADE".into(),
-            ifdown: "iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o enp0s3 -j MASQUERADE".into(),
-            publickey: "".into(),
-            privatekey: "".into(),
-            peer: vec![]
-        }
-    }
-}
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateInterfaceConf {
@@ -49,105 +19,89 @@ pub struct UpdateInterfaceConf {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CreateInterfaceConf {
+pub struct CreateServer {
     name: String,
     port: u16,
-    address: String,
+    cidr: String,
 }
 
-pub async fn start_interface(
-    Path(iface_id): Path<usize>,
-    Extension(state): Extension<SharedState>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    let state = state.read().await;
-    let iface = state.interfaces.get(iface_id);
-    if let Some(iface) = iface {
-        return match wghelper::start(iface).await {
-            Err(msg) => Err((StatusCode::INTERNAL_SERVER_ERROR, msg)),
-            Ok(_) => Ok(StatusCode::OK),
-        };
-    }
-
-    Err((
-        StatusCode::INTERNAL_SERVER_ERROR,
-        "Interface not found".into(),
-    ))
-}
-
-pub async fn stop_interface(
-    Path(iface_id): Path<usize>,
+pub async fn start_server(
+    Path(server_id): Path<usize>,
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let state = state.read().await;
-    let iface = state.interfaces.get(iface_id);
-    if let Some(iface) = iface {
-        wghelper::stop(&iface.name).await;
+    if let Some(_) = state.servers.get(server_id) {
+        state.start(server_id).await;
         return Ok(StatusCode::OK);
     }
     Err(StatusCode::INTERNAL_SERVER_ERROR)
 }
 
-pub async fn refresh_interface(
-    Path(iface_id): Path<usize>,
+pub async fn stop_server(
+    Path(server_id): Path<usize>,
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let state = state.read().await;
-    let iface = state.interfaces.get(iface_id);
-    if let Some(iface) = iface {
-        wghelper::refresh(iface).await;
+    if let Some(_) = state.servers.get(server_id) {
+        state.stop(server_id).await;
         return Ok(StatusCode::OK);
     }
     Err(StatusCode::INTERNAL_SERVER_ERROR)
 }
 
-pub async fn get_interfaces(Extension(state): Extension<SharedState>) -> impl IntoResponse {
+pub async fn refresh_server(
+    Path(server_id): Path<usize>,
+    Extension(state): Extension<SharedState>,
+) -> Result<StatusCode, StatusCode> {
+    let state = state.read().await;
+    if let Some(_) = state.servers.get(server_id) {
+        state.hot_reload(server_id).await;
+        return Ok(StatusCode::OK);
+    }
+    Err(StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+pub async fn get_servers(Extension(state): Extension<SharedState>) -> impl IntoResponse {
     let state = state.read().await;
     let ifaces: Vec<String> = state
-        .interfaces
+        .servers
         .iter()
-        .map(|iface| iface.name.clone())
+        .map(|server| server.name.clone())
         .collect();
-
-    axum::Json(ifaces)
+    Json(ifaces)
 }
 
-pub async fn create_interface(
-    Json(create_iface): Json<CreateInterfaceConf>,
+pub async fn create_server(
+    Json(create_server): Json<CreateServer>,
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let mut state = state.write().await;
-    let (privatekey, publickey) = wghelper::get_keys().await;
-    let new_interface = InterfaceConf {
-        name: create_iface.name,
-        port: create_iface.port,
-        address: create_iface.address,
-        publickey,
-        privatekey,
-        ..InterfaceConf::default()
-    };
-    (*state).interfaces.push(new_interface);
-    wghelper::write_config(&state).await;
+    state
+        .new(&create_server.name, &create_server.cidr, create_server.port)
+        .await;
+
+    Wg::dump_state(&state).await;
     Ok(StatusCode::OK)
 }
 
-pub async fn get_interface(
-    Path(id): Path<usize>,
+pub async fn get_server(
+    Path(server_id): Path<usize>,
     Extension(state): Extension<SharedState>,
-) -> Result<Json<InterfaceConf>, StatusCode> {
+) -> Result<Json<Server>, StatusCode> {
     let state = state.read().await;
-    let iface = state.interfaces.get(id);
-    if let Some(iface) = iface {
-        Ok(Json(iface.clone()))
+    if let Some(server) = state.servers.get(server_id) {
+        Ok(Json(server.clone()))
     } else {
         Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
 }
 
-pub async fn update_interface(
+pub async fn update_server(
     Json(updated_json): Json<UpdateInterfaceConf>,
-    Path(id): Path<usize>,
+    Path(server_id): Path<usize>,
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
+    /*
     let mut state = state.write().await;
     dbg!(&updated_json);
     if state.interfaces.len() > id {
@@ -188,18 +142,19 @@ pub async fn update_interface(
     } else {
         Err(StatusCode::INTERNAL_SERVER_ERROR)
     }
+    */
+    todo!()
 }
 
-pub async fn delete_interface(
-    Path(id): Path<usize>,
+pub async fn delete_server(
+    Path(server_id): Path<usize>,
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let mut state = state.write().await;
-    if state.interfaces.len() > id {
-        state.interfaces.remove(id);
-        wghelper::write_config(&state).await;
-        Ok(StatusCode::OK)
-    } else {
-        Err(StatusCode::INTERNAL_SERVER_ERROR)
+    if let Some(_) = state.servers.get(server_id) {
+        state.servers.remove(server_id);
+        Wg::dump_state(&state).await;
+        return Ok(StatusCode::OK);
     }
+    Err(StatusCode::INTERNAL_SERVER_ERROR)
 }

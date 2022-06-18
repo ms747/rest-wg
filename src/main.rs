@@ -1,8 +1,9 @@
 use axum::{routing::get, Extension, Router};
-use state::{SharedState, State};
+use state::SharedState;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::RwLock;
 use tower_http::cors::{Any, CorsLayer};
+use wghelper::Wg;
 
 mod interface;
 mod peer;
@@ -12,7 +13,7 @@ mod wghelper;
 
 #[tokio::main]
 async fn main() {
-    let interface_conf: State = wghelper::read_config();
+    let interface_conf: Wg = Wg::read_state();
     let shared_state: SharedState = Arc::new(RwLock::new(interface_conf));
 
     let cors = CorsLayer::new()
@@ -23,20 +24,17 @@ async fn main() {
     let app = Router::new()
         .route(
             "/interface",
-            get(interface::get_interfaces).post(interface::create_interface),
+            get(interface::get_servers).post(interface::create_server),
         )
         .route(
             "/interface/:iface",
-            get(interface::get_interface)
-                .patch(interface::update_interface)
-                .delete(interface::delete_interface),
+            get(interface::get_server)
+                .patch(interface::update_server)
+                .delete(interface::delete_server),
         )
-        .route("/interface/:iface/start", get(interface::start_interface))
-        .route("/interface/:iface/stop", get(interface::stop_interface))
-        .route(
-            "/interface/:iface/refresh",
-            get(interface::refresh_interface),
-        )
+        .route("/interface/:iface/start", get(interface::start_server))
+        .route("/interface/:iface/stop", get(interface::stop_server))
+        .route("/interface/:iface/refresh", get(interface::refresh_server))
         .route(
             "/interface/:iface/peer",
             get(peer::get_peers).post(peer::create_peer),
