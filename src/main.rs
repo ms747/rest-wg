@@ -39,7 +39,10 @@ async fn main() {
         .allow_origin(Any)
         .allow_headers(Any);
 
-    let app = Router::new()
+    let open_routes = Router::new()
+        .route("/login", get(|| async {}));
+
+    let protected_routes = Router::new()
         .route(
             "/interface",
             get(interface::get_servers).post(interface::create_server),
@@ -68,7 +71,11 @@ async fn main() {
             get(peerconfig::get_config),
         )
         .layer(Extension(shared_state))
-        .layer(middleware::from_fn(auth))
+        .layer(middleware::from_fn(auth));
+    
+    let app = Router::new()
+        .merge(open_routes)
+        .merge(protected_routes)
         .layer(cors);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
