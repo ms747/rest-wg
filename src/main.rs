@@ -39,8 +39,7 @@ async fn main() {
         .allow_origin(Any)
         .allow_headers(Any);
 
-    let open_routes = Router::new()
-        .route("/login", get(|| async {}));
+    let open_routes = Router::new().route("/login", get(|| async {}));
 
     let protected_routes = Router::new()
         .route(
@@ -72,7 +71,7 @@ async fn main() {
         )
         .layer(Extension(shared_state))
         .layer(middleware::from_fn(auth));
-    
+
     let app = Router::new()
         .merge(open_routes)
         .merge(protected_routes)
