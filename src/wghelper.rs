@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::fmt::Write;
 use std::process::Stdio;
+use std::{collections::HashSet, fmt::Write};
 use tokio::{
     fs::File,
     io::{AsyncWriteExt, BufWriter},
@@ -62,7 +62,7 @@ impl Wg {
         self.servers.push(server);
     }
 
-    pub async fn start(&self, server_id: usize) {
+    pub async fn start(&self, server_id: usize) -> Result<(), String> {
         self.wg_config(server_id).await;
         let config_file = &self.servers[server_id].path;
         let output = Command::new("wg-quick")
@@ -71,10 +71,14 @@ impl Wg {
             .await
             .unwrap();
 
-        dbg!(output);
+        if output.status.success() {
+            return Ok(());
+        }
+
+        Err(String::from_utf8(output.stderr).unwrap())
     }
 
-    pub async fn stop(&self, server_id: usize) {
+    pub async fn stop(&self, server_id: usize) -> Result<(), String> {
         self.wg_config(server_id).await;
         let config_file = &self.servers[server_id].path;
         let output = Command::new("wg-quick")
@@ -83,7 +87,11 @@ impl Wg {
             .await
             .unwrap();
 
-        dbg!(output);
+        if output.status.success() {
+            return Ok(());
+        }
+
+        Err(String::from_utf8(output.stderr).unwrap())
     }
 
     pub fn read_state() -> Wg {
@@ -241,5 +249,21 @@ impl Wg {
             }
         }
         output
+    }
+
+    pub async fn server_status() -> HashSet<String> {
+        let mut status = HashSet::new();
+        let output = Command::new("wg")
+            .args(["show", "interfaces"])
+            .output()
+            .await
+            .unwrap();
+
+        let output: String = String::from_utf8(output.stdout).unwrap();
+        for server in output.trim().split(' ') {
+            status.insert(server.into());
+        }
+
+        status
     }
 }

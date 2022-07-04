@@ -4,7 +4,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use axum::{extract::Path, Extension};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /*
 #[derive(Debug, Deserialize)]
@@ -33,8 +33,9 @@ pub async fn start_server(
 ) -> Result<StatusCode, StatusCode> {
     let state = state.read().await;
     if state.servers.get(server_id).is_some() {
-        state.start(server_id).await;
-        return Ok(StatusCode::OK);
+        if state.start(server_id).await.is_ok() {
+            return Ok(StatusCode::OK);
+        }
     }
     Err(StatusCode::INTERNAL_SERVER_ERROR)
 }
@@ -45,8 +46,9 @@ pub async fn stop_server(
 ) -> Result<StatusCode, StatusCode> {
     let state = state.read().await;
     if state.servers.get(server_id).is_some() {
-        state.stop(server_id).await;
-        return Ok(StatusCode::OK);
+        if state.stop(server_id).await.is_ok() {
+            return Ok(StatusCode::OK);
+        }
     }
     Err(StatusCode::INTERNAL_SERVER_ERROR)
 }
@@ -64,11 +66,31 @@ pub async fn refresh_server(
 }
 
 pub async fn get_servers(Extension(state): Extension<SharedState>) -> impl IntoResponse {
+    #[derive(Serialize)]
+    struct Status {
+        name: String,
+        running: bool,
+        address: String,
+        peer_count: usize,
+        port: u16,
+    }
+
     let state = state.read().await;
-    let ifaces: Vec<String> = state
+    let server_status = Wg::server_status().await;
+    let ifaces: Vec<Status> = state
         .servers
         .iter()
-        .map(|server| server.name.clone())
+        .map(|server| Status {
+            name: server.name.clone(),
+            running: if server_status.contains(&server.name) {
+                true
+            } else {
+                false
+            },
+            address: format!("{}/{}", server.address.replace('x', "0"), server.subnet),
+            peer_count: server.peers.len(),
+            port: server.port,
+        })
         .collect();
     Json(ifaces)
 }

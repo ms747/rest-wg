@@ -1,4 +1,10 @@
-use axum::{routing::get, Extension, Router};
+use axum::{
+    http::{header::AUTHORIZATION, Request, StatusCode},
+    middleware::{self, Next},
+    response::Response,
+    routing::get,
+    Extension, Router,
+};
 use state::SharedState;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::RwLock;
@@ -11,7 +17,19 @@ mod peerconfig;
 mod state;
 mod wghelper;
 
-#[tokio::main]
+async fn auth<T>(req: Request<T>, next: Next<T>) -> Result<Response, StatusCode> {
+    let headers = req
+        .headers()
+        .get(AUTHORIZATION)
+        .and_then(|header| header.to_str().ok());
+
+    match headers {
+        Some(auth) if auth == "WireGuardGui" => Ok(next.run(req).await),
+        _ => Err(StatusCode::UNAUTHORIZED),
+    }
+}
+
+#[tokio::main()]
 async fn main() {
     let interface_conf: Wg = Wg::read_state();
     let shared_state: SharedState = Arc::new(RwLock::new(interface_conf));
@@ -50,6 +68,7 @@ async fn main() {
             get(peerconfig::get_config),
         )
         .layer(Extension(shared_state))
+        .layer(middleware::from_fn(auth))
         .layer(cors);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
