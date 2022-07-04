@@ -32,10 +32,8 @@ pub async fn start_server(
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let state = state.read().await;
-    if state.servers.get(server_id).is_some() {
-        if state.start(server_id).await.is_ok() {
-            return Ok(StatusCode::OK);
-        }
+    if state.servers.get(server_id).is_some() && state.start(server_id).await.is_ok() {
+        return Ok(StatusCode::OK);
     }
     Err(StatusCode::INTERNAL_SERVER_ERROR)
 }
@@ -45,10 +43,8 @@ pub async fn stop_server(
     Extension(state): Extension<SharedState>,
 ) -> Result<StatusCode, StatusCode> {
     let state = state.read().await;
-    if state.servers.get(server_id).is_some() {
-        if state.stop(server_id).await.is_ok() {
-            return Ok(StatusCode::OK);
-        }
+    if state.servers.get(server_id).is_some() && state.stop(server_id).await.is_ok() {
+        return Ok(StatusCode::OK);
     }
     Err(StatusCode::INTERNAL_SERVER_ERROR)
 }
@@ -82,11 +78,7 @@ pub async fn get_servers(Extension(state): Extension<SharedState>) -> impl IntoR
         .iter()
         .map(|server| Status {
             name: server.name.clone(),
-            running: if server_status.contains(&server.name) {
-                true
-            } else {
-                false
-            },
+            running: server_status.contains(&server.name),
             address: format!("{}/{}", server.address.replace('x', "0"), server.subnet),
             peer_count: server.peers.len(),
             port: server.port,
